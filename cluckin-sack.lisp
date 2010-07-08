@@ -48,4 +48,35 @@
 		       :name (or name "")
 		       :notes notes))))
 
+(defun print-all-persons ()
+  (with-rucksack (rs *cluck-dir*)
+    (with-transaction ()
+      (rucksack-map-class rs 'person-details
+			  (lambda (object)
+			    (format t "~A~%" object))))))
 
+(defun find-person-by-ezid (ez-id)
+  (with-rucksack (rs *cluck-dir*)
+    (with-transaction ()
+      (rucksack-map-slot rs 'person-details 'ez-id
+			 (lambda (person)
+			   (return-from find-person-by-ezid person))
+			 :equal ez-id)))
+  nil)
+
+(defun find-persons-by-ezid-range (&optional start end)
+  (let (ret)
+    (with-rucksack (rs *cluck-dir*)
+      (with-transaction ()
+	(rucksack-map-slot rs 'person-details 'ez-id
+			    (lambda (person)
+			      (push person ret))
+			    :min start :max end :include-min t :include-max t)))
+    (nreverse ret)))
+
+(defun delete-object-by-ezid (ez-id)
+  (with-rucksack (rs *cluck-dir*)
+    (with-transaction ()
+      (let ((person (find-person-by-ezid ez-id)))
+	(when person
+	  (rucksack::rucksack-delete-object rs person))))))
