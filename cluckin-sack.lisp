@@ -3,8 +3,9 @@
   (:use :cl :rucksack))
 (in-package :cluckin-sack)
 
-(defvar *cluck-dir* #p"~/cluckin-sack")
+(defvar *cluck-dir* #p"/Users/felipe/cluckin-sack")
 
+;; TODO: Remove Supersede after testing
 (with-rucksack (rs *cluck-dir* :if-exists :supersede)
   (with-transaction ()
     (defclass person-details ()
@@ -28,12 +29,38 @@
       (:metaclass persistent-class)) 
     ))
 
-;; Automatically give unique ID.
-(defvar *unique-id* 0)
-(defmethod initialize-instance :after ((obj person-details) &key)
-  (setf (unique-id-of obj) (incf *unique-id*)))
+;; TODO: Remove Supersede after testing
+(with-rucksack (rs *cluck-dir* :if-exists :supersede)
+  (with-transaction ()
+    (defclass entry-details ()
+      ((unique-id    :initarg :unique-id :accessor unique-id-of 
+		     :index :number-index
+                     :unique t
+		     :documentation "A unique number for each entry")
+              
+       (timestamp    :initarg :timestamp :accessor timestamp-of 
+		     :index :number-index
+	             :documentation "The timestamp of the entry")
 
-;; Helper method for printing a person object
+       (person       :initarg :person :accessor person-of
+		     :documentation "Person object the entry is assigned to")
+       
+       (notes        :initarg :notes :accessor notes-of
+		     :documentation "Free form notes about this entry"))
+      (:index t)
+      (:metaclass persistent-class)) 
+    ))
+
+;;; Automatically give unique IDs.
+(defvar *unique-person-id* 0)
+(defmethod initialize-instance :after ((obj person-details) &key)
+  (setf (unique-id-of obj) (incf *unique-person-id*)))
+
+(defvar *unique-entry-id* 0)
+(defmethod initialize-instance :after ((obj entry-details) &key)
+  (setf (unique-id-of obj) (incf *unique-entry-id*)))
+
+;;; Helper method for printing objects
 (defmethod print-object ((obj person-details) stream)
   (print-unreadable-object (obj stream :type t)
     (with-slots (unique-id ez-id notes) obj
