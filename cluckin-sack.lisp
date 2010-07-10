@@ -5,8 +5,13 @@
 
 (defvar *cluck-dir* #p"/Users/felipe/cluckin-sack")
 
-;; TODO: Remove Supersede after testing
-(with-rucksack (rs *cluck-dir* :if-exists :supersede)
+(defmacro with-clucktrans (&body body)
+  "Wrapper for defining a rucksack transaction using CLUCK-DIR."
+  `(with-rucksack (rs *cluck-dir*)
+     (with-transaction ()
+       ,@body)))
+
+(with-rucksack (rs *cluck-dir*)
   (with-transaction ()
     (defclass person-details ()
       ((unique-id    :initarg :unique-id :accessor unique-id-of 
@@ -29,8 +34,7 @@
       (:metaclass persistent-class)) 
     ))
 
-;; TODO: Remove Supersede after testing
-(with-rucksack (rs *cluck-dir* :if-exists :supersede)
+(with-rucksack (rs *cluck-dir*)
   (with-transaction ()
     (defclass entry-details ()
       ((unique-id    :initarg :unique-id :accessor unique-id-of 
@@ -68,42 +72,37 @@
                 unique-id ez-id notes))))
 
 (defun make-person (ez-id name &optional notes)
-  (with-rucksack (rs *cluck-dir*)
-    (with-transaction ()
-	(make-instance 'person-details 
-		       :ez-id (or ez-id "")
-		       :name (or name "")
-		       :notes notes))))
+  (with-clucktrans
+    (make-instance 'person-details 
+		   :ez-id (or ez-id "")
+		   :name (or name "")
+		   :notes notes)))
 
 (defun print-all-persons ()
-  (with-rucksack (rs *cluck-dir*)
-    (with-transaction ()
-      (rucksack-map-class rs 'person-details
-			  (lambda (object)
-			    (format t "~A~%" object))))))
+  (with-clucktrans
+    (rucksack-map-class rs 'person-details
+			(lambda (object)
+			  (format t "~A~%" object)))))
 
 (defun find-person-by-ezid (ez-id)
-  (with-rucksack (rs *cluck-dir*)
-    (with-transaction ()
-      (rucksack-map-slot rs 'person-details 'ez-id
-			 (lambda (person)
-			   (return-from find-person-by-ezid person))
-			 :equal ez-id)))
+  (with-clucktrans
+    (rucksack-map-slot rs 'person-details 'ez-id
+		       (lambda (person)
+			 (return-from find-person-by-ezid person))
+		       :equal ez-id))
   nil)
 
 (defun find-persons-by-ezid-range (&optional start end)
   (let (ret)
-    (with-rucksack (rs *cluck-dir*)
-      (with-transaction ()
-	(rucksack-map-slot rs 'person-details 'ez-id
-			    (lambda (person)
-			      (push person ret))
-			    :min start :max end :include-min t :include-max t)))
+    (with-clucktrans
+      (rucksack-map-slot rs 'person-details 'ez-id
+			 (lambda (person)
+			   (push person ret))
+			 :min start :max end :include-min t :include-max t))
     (nreverse ret)))
 
 (defun delete-object-by-ezid (ez-id)
-  (with-rucksack (rs *cluck-dir*)
-    (with-transaction ()
-      (let ((person (find-person-by-ezid ez-id)))
-	(when person
-	  (rucksack::rucksack-delete-object rs person))))))
+  (with-clucktrans
+    (let ((person (find-person-by-ezid ez-id)))
+      (when person
+	(rucksack::rucksack-delete-object rs person)))))50
