@@ -3,7 +3,7 @@
   (:use :cl :rucksack))
 (in-package :cluckin-sack)
 
-(defvar *cluck-dir* #p"/Users/felipe/cluckin-sack")
+(defvar *cluck-dir* #p"~/cluckin-sack")
 
 (defmacro with-clucktrans (&body body)
   "Wrapper for defining a rucksack transaction using CLUCK-DIR."
@@ -48,6 +48,9 @@
 
        (person       :initarg :person :accessor person-of
 		     :documentation "Person object the entry is assigned to")
+
+       (type         :initarg :type :accessor cluck-type
+		     :documentation "Type of entry: in/out")
        
        (notes        :initarg :notes :accessor notes-of
 		     :documentation "Free form notes about this entry"))
@@ -64,13 +67,20 @@
 (defmethod initialize-instance :after ((obj entry-details) &key)
   (setf (unique-id-of obj) (incf *unique-entry-id*)))
 
-;;; Helper method for printing objects
+;;; Helper methods for printing objects
 (defmethod print-object ((obj person-details) stream)
   (print-unreadable-object (obj stream :type t)
     (with-slots (unique-id ez-id notes) obj
-	(format stream "~A: '~A' '~A'"
-                unique-id ez-id notes))))
+      (format stream "~A: '~A' '~A'"
+	      unique-id ez-id notes))))
 
+(defmethod print-object ((obj entry-details) stream)
+  (print-unreadable-object (obj stream :type t)
+    (with-slots (unique-id timestamp person type notes) obj
+      (format stream "~A: ~A '~A' '~A' '~A'"
+	      unique-id timestamp person type notes))))
+
+;;;  Functions to create objects
 (defun make-person (ez-id name &optional notes)
   (with-clucktrans
     (make-instance 'person-details 
@@ -78,9 +88,24 @@
 		   :name (or name "")
 		   :notes notes)))
 
+(defun cluck-in (ez-id &optional notes)
+  (with-clucktrans
+    (make-instance 'entry-details 
+		   :timestamp (get-universal-time)
+		   :person (find-person-by-ezid ez-id)
+		   :type "in"
+		   :notes notes)))
+
+;;; Functions to find/return objects
 (defun print-all-persons ()
   (with-clucktrans
     (rucksack-map-class rs 'person-details
+			(lambda (object)
+			  (format t "~A~%" object)))))
+
+(defun print-all-entries ()
+  (with-clucktrans
+    (rucksack-map-class rs 'entry-details
 			(lambda (object)
 			  (format t "~A~%" object)))))
 
@@ -101,7 +126,7 @@
 			 :min start :max end :include-min t :include-max t))
     (nreverse ret)))
 
-(defun delete-object-by-ezid (ez-id)
+(defun delete-person-by-ezid (ez-id)
   (with-clucktrans
     (let ((person (find-person-by-ezid ez-id)))
       (when person
