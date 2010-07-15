@@ -31,8 +31,7 @@
        (notes        :initarg :notes :accessor notes-of
 		     :documentation "Free form notes about this person"))
       (:index t)
-      (:metaclass persistent-class)) 
-    ))
+      (:metaclass persistent-class))))
 
 (with-rucksack (rs *cluck-dir*)
   (with-transaction ()
@@ -55,8 +54,7 @@
        (notes        :initarg :notes :accessor notes-of
 		     :documentation "Free form notes about this entry"))
       (:index t)
-      (:metaclass persistent-class)) 
-    ))
+      (:metaclass persistent-class))))
 
 ;;; Automatically give unique IDs.
 (defvar *unique-person-id* 0)
@@ -130,4 +128,4 @@
   (with-clucktrans
     (let ((person (find-person-by-ezid ez-id)))
       (when person
-	(rucksack::rucksack-delete-object rs person)))))50
+	(rucksack::rucksack-delete-object rs person)))))
